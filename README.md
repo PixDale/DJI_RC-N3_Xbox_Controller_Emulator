@@ -1,8 +1,8 @@
-# DJI RC-N1 as Xbox 360 Controller
+# DJI RC-N3 as Xbox 360 Controller
 
-This script turns your **DJI RC-N1 controller** into an **Xbox 360 controller**, so you can use it with your favorite drone simulator.
+This script turns your **DJI RC-N3 controller** into an **Xbox 360 controller**, so you can use it with your favorite drone simulator.
 
-![DJI RC-N1 controller with Zaphyr simulator](assets/Zephyr_simulator.jpg)
+![DJI RC-N3 controller with Zaphyr simulator](assets/Zephyr_simulator.jpg)
 
 ## Installation
 
@@ -11,13 +11,21 @@ This script turns your **DJI RC-N1 controller** into an **Xbox 360 controller**,
 This is only needed to install the DJI drivers for the controller.  
 IMPORTANT: **DO NOT** run this script while DJI Assistant 2 is running!
 2. Download and install [Python 3.x.x](https://www.python.org/downloads/).
-3. Install the required packages for this project: `pip3 install vgamepad pyserial python-dotenv colorama`.
+3. Install the required packages for this project: `pip3 install vgamepad pyserial`.
+4. Optionally install `python-dotenv` for `.env` file support: `pip3 install python-dotenv`.
 
 ## How to use
 
-1. Connect your DJI RC-N1 controller to your computer via the USB-C port <b style="color: darkred">ON THE BOTTOM PORT</b> (the port between the two joystick holders) of the controller.
+1. Connect your DJI RC-N3 controller to your computer via the USB-C port <b style="color: darkred">ON THE BOTTOM PORT</b> (the port between the two joystick holders) of the controller.
 2. Power on the controller.
 3. Run `python dji.py` from the terminal to start the script.
+
+### Command-line options
+
+| Flag | Description |
+|------|-------------|
+| `-p`, `--port` | Specify the serial port manually (e.g. `-p COM5`). Auto-detected if omitted. |
+| `-d`, `--debug` | Show live stick/button values in the console. |
 
 terminal with SHOW_DEBUG=1 (animated gif)
 
@@ -27,12 +35,7 @@ terminal with SHOW_DEBUG=0, perhaps faster
 
 ![Working in Windows terminal, debug off](assets/debug_off.png)
 
-From time to time there is bigger lag between measurements,
-to observe this phenomenon with SHOW_DEBUG=1 there is possibility to set SHOW_GT20=1 and programs shows such situations
-
-![Working in Windows terminal, measurement time greater than 20ms](assets/gt20.png)
-
-Additionally after stopping program there is deatiles statistics of transfered data and some information about processed packets
+After stopping the program, session statistics are displayed (duration, packet rates, jitter distribution).
 
 ![Working in Windows terminal, ending statistic](assets/longrun.png)
 
@@ -44,39 +47,42 @@ Move the joysticks and the Camera Control Dial to see if the buttons are activat
 
 ## Customization
 
-Besides the two joysticks, only the **Camera Control Dial** is accessible through the script.  
-By default, the Camera Dial is mapped to the **A** (dial all the way to the left) and **B** (dial all the way to the right) buttons of the Xbox controller.  
-In the `.env` file you can change the Camera Dial mapping.
+The script maps the two joysticks, the **Camera Control Dial**, and the physical **RC buttons** (Fn, Camera, Photo, RTH) plus the **flight mode switch** to Xbox 360 controller inputs.  
+All mappings are configurable via the `.env` file (or environment variables).
 
 ```bash
-# possible values for BAUD_RATE are: 9600 (slowest), 19200, 38400, 57600, 115200 (fastest)
-# BAUD_RATE is not used, nothing changes for different values, Windows sets everything
-BAUD_RATE=921600
+# Camera dial button mapping
+# Available: A, B, X, Y, START, BACK, LB, RB, LS, RS, DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT
+CAMERA_UP_BUTTON=Y
+CAMERA_DOWN_BUTTON=B
 
-#ON/OFF runtime information, 1 show, 0 do not show (default)
+# Camera sensitivity: 0.0-1.0 (higher = harder to trigger, default 0.98)
+CAMERA_SENSITIVITY=0.98
+
+# Physical RC button mapping
+RC_FN_BUTTON=A
+RC_CAMERA_BUTTON=LB
+RC_PHOTO_BUTTON=X
+RC_RTH_BUTTON=RB
+
+# Flight mode switch (leave empty to disable)
+# These gamepad buttons are HELD while the switch is in that position
+# Normal mode = neither button pressed
+RC_MODE_SPORT_BUTTON=START
+RC_MODE_CINE_BUTTON=BACK
+
+# Show live stick/button values in console (0=off, 1=on; or use -d flag)
 SHOW_DEBUG=0
-
-#ON/OFF show situations when time difference between measure packets is > 20 ms, 1 show, 0 do not show (default), works when SHOW_DEBUG = 1
-SHOW_GT20=0
-
-
-# possible values for Xbox controller are:
-# A, B, X, Y, START, BACK, LB (left bumper), RB (right bumper), LT (left trigger), RT (right trigger)
-CAMERA_RIGHT_BUTTON=B
-CAMERA_LEFT_BUTTON=A
-
-# how for to move the camera roller to the left/right before the button is triggered (min 0.1, max 1.0, default 0.2)
-CAMERA_ROLL_SENSITIVITY=0.2
 ```
 
 ## Troubleshooting
 
 1. You have installed the drivers for the controller with DJI Assistant 2 (Consumer Drones Series)?
 2. Your controller is connected to your computer via the USB-C port **ON THE BOTTOM** of the controller?
-3. Use a **good quality USB-C cable** (not all cables are capable of data transfer, some of them are from poor quality and maybe the cable is just to long).<br>
-Try different cables or lower the baud rate in the `.env` file.
+3. Use a **good quality USB-C cable** (not all cables are capable of data transfer, some of them are from poor quality and maybe the cable is just too long).<br>
+Try different cables.
 
-If all of the above is correct, you should see the controller as **"DJI USB VCOM For Protocol (COMx)"** in the device manager of Windows under "Ports (COM & LPT)"<br>
+If all of the above is correct, you should see the controller as **"DJI USB VCOM For Protocol (COMx)"** or **"DEVICE USB VCOM For Protocol (COMx)"** in the device manager of Windows under "Ports (COM & LPT)"<br>
 ![DJI USB VCOM](assets/com_ports.png)
 
 ## Simulators tested
@@ -94,6 +100,20 @@ This script is based on the [Matsemann/mDjiController](https://github.com/Matsem
 - [Konrad Iturbe](https://github.com/KonradIT)
 
 ## Change log
+
+### **4.0.0**
+- Renamed project from RC-N1 to **RC-N3**
+- Added physical RC button mapping (Fn, Camera, Photo, RTH)
+- Added flight mode switch mapping (Sport / Normal / Cine)
+- Added CLI arguments (`-p` / `--port`, `-d` / `--debug`)
+- Added `LS`, `RS`, and `DPAD_*` to available button options
+- Made `python-dotenv` optional
+- Removed `colorama` dependency
+- Removed `BAUD_RATE` and `SHOW_GT20` settings
+- Renamed camera env vars to `CAMERA_UP_BUTTON` / `CAMERA_DOWN_BUTTON`
+- Renamed camera sensitivity to `CAMERA_SENSITIVITY` (new default 0.98)
+- Also detects `DEVICE USB VCOM For Protocol` ports
+- Session statistics printed on exit
 
 ### **1.0.3** (2023-12-23)
 - Added sensitivity setting for Camera Control Dial
