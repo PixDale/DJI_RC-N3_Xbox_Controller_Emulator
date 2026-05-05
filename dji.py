@@ -1,6 +1,7 @@
 import argparse
 import os
 import struct
+import sys
 import time
 from threading import Thread
 
@@ -15,11 +16,13 @@ except ImportError:
 
 parser = argparse.ArgumentParser(description='DJI RC-N3 Simulator Gamepad Bridge')
 parser.add_argument('-p', '--port', help='Serial port (auto-detect if not specified)')
+parser.add_argument('-d', '--debug', action='store_true', help='Show live stick/button values')
 
 args = parser.parse_args()
 gamepad = vg.VX360Gamepad()
 camera = 0
 sequence_number = 0x34eb
+SHOW_DEBUG = args.debug or os.environ.get('SHOW_DEBUG', '0') == '1'
 
 # --- Configurable camera buttons via environment / .env ---
 BUTTON_MAP = {
@@ -223,6 +226,10 @@ if RC_BUTTONS:
         mode_parts.append(f'Cine={MODE_CINE_BUTTON_NAME}')
     if mode_parts:
         print(f'  Mode switch: {"  |  ".join(mode_parts)}')
+if SHOW_DEBUG:
+    print('  Debug output: ON')
+else:
+    print('  Debug output: OFF (set SHOW_DEBUG=1 in .env or use -d flag)')
 print('Close terminal or press Ctrl+C to stop.\n')
 
 # Process input (min 364, center 1024, max 1684) -> (min -32768, center 0, max 32767)
@@ -239,6 +246,9 @@ st_rv = 0
 st_lh = 0
 st_lv = 0
 rc_button_bits = 0  # raw bitmask from cmd_id=0x27
+debug_last_display = 0  # throttle debug output
+
+MODE_NAMES = {0x0000: 'Sport', 0x1000: 'Normal', 0x2000: 'Cine'}
 
 def gamepad_thread():
     """Pushes stick state to virtual gamepad at ~100Hz, independent of serial reads."""
@@ -380,6 +390,19 @@ try:
                 st_lv = parseInput(int.from_bytes(data[19:21], 'little'))
                 st_lh = parseInput(int.from_bytes(data[22:24], 'little'))
                 camera = parseInput(int.from_bytes(data[25:27], 'little'))
+
+                # Live debug output (~15Hz max)
+                if SHOW_DEBUG:
+                    now_dbg = time.time()
+                    if now_dbg - debug_last_display >= 0.066:
+                        debug_last_display = now_dbg
+                        bits = rc_button_bits
+                        btn_bits = bits & ~0x3000
+                        active = [name for mask, name in [(0x0002, 'Fn'), (0x0004, 'Cam'), (0x0060, 'Photo'), (0x0080, 'RTH')] if btn_bits & mask == mask]
+                        mode = MODE_NAMES.get(bits & 0x3000, '?')
+                        btn_str = ','.join(active) if active else '-'
+                        sys.stdout.write(f'\r\033[K  LH={st_lh:>6d}  LV={st_lv:>6d}  RH={st_rh:>6d}  RV={st_rv:>6d}  Cam={camera:>6d}  Btn=[{btn_str}]  Mode={mode}')
+                        sys.stdout.flush()
 
             # cmd_id=0x27 response (58 bytes): physical buttons
             elif len(data) == 58 and data[10] == 0x27:
